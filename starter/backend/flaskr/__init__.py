@@ -11,7 +11,8 @@ QUESTIONS_PER_PAGE = 10
 def create_app(test_config=None):
   # create and configure the app
   app = Flask(__name__)
-  setup_db(app)
+  #setup_db is modified to return db to be able to use db.session.commit()
+  db = setup_db(app)
 
   
   '''
@@ -102,10 +103,12 @@ def create_app(test_config=None):
       if 'type' in body:
         category.type = body.get('type')  
 
-      category.update()
+      #category.update()
+      db.session.commit()
 
       return jsonify({
         'success': True,
+        'type': category.type,
         'id': category.id
       })
     except Exception as e:
@@ -121,7 +124,8 @@ def create_app(test_config=None):
         abort(404, {'message': 'There is no category with the specified id'})
 
 
-      category.delete()
+      Category.query.filter_by(id=category_id).delete()
+      db.session.commit()
 
       current_categories = paginate_collection(request, Category.query.order_by(Category.id).all())
 
@@ -156,18 +160,43 @@ def create_app(test_config=None):
   @app.route('/questions')
   def get_questions():
     questions = Question.query.order_by(Question.id).all()
+    categories = Category.query.order_by(Category.id).all()
+    
+    formated_categories = []
+    for c in categories:
+      formated_categories.append(c.format())
     
     current_questions = paginate_collection(request,questions)
     
 
     if len(current_questions) == 0:
-      abort(404, {'message': 'There is no question with the specified id'})
+      abort(404, {'message': 'There is no available questions'})
 
     return jsonify({
       'questions': current_questions,
+      'categories': formated_categories,
       'total_questions': len(questions),
       'success': True
     })
+
+
+  @app.route('/questions/<int:question_id>')
+  def get_question(question_id):
+    try:
+      question = Question.query.get(question_id)
+      if question is None:
+        #https://stackoverflow.com/questions/21294889/how-to-get-access-to-error-message-from-abort-command-when-using-custom-error-ha
+        abort(404 , {'message': 'There is no question with the specified id'})
+
+
+      return jsonify({
+      'question' : question.format(),
+      'success': True
+      })
+
+    except Exception as e:
+      print(e)
+      abort(405 , {'message': 'The method is not allowed for the requested URL'})  
 
   '''
   @TODO: 
@@ -178,26 +207,28 @@ def create_app(test_config=None):
   @app.route('/questions/<int:question_id>', methods = ['DELETE'])
   def delete_question(question_id):
     try:
-      question = Question.query.get(question_id)
+      question = Question.query.filter(Question.id == question_id).one_or_none()
+      print(f"I am fine: {question}")
       if question is None:
         abort(404, {'message': 'There is no question with the specified id'})
 
-
-      question.delete()
+      
+      Question.query.filter_by(id=question_id).delete()
+      db.session.commit()
 
       current_questions = paginate_collection(request, Question.query.order_by(Question.id).all())
 
 
       return jsonify({
-        'success': True,
-        'deleted':question_id,
         'questions': current_questions,
-        'total_questions': len(Question.query.all()) 
+        'total_questions': len(Question.query.all()),
+        'success': True,
+        'deleted':question_id, 
         })
 
     except Exception as e:
       print(e)
-      flash(e)
+      #flash(e)
       abort(422, {'message': 'The specified question could not be deleted'})  
 
   '''
@@ -212,6 +243,7 @@ def create_app(test_config=None):
   '''
   @app.route('/questions', methods = ['POST'])
   def create_question():
+    
     body = request.json
 
     new_question   = body.get('question', None)
@@ -224,12 +256,13 @@ def create_app(test_config=None):
                           answer   = new_answer,
                           category = new_category,
                           difficulty =  new_difficulty)
-      question.insert()
+      db.session.add(question)
+      db.session.commit()
 
       current_questions = paginate_collection(request,Question.query.order_by(Question.id).all())                    
       return jsonify({
         'success': True,
-        'create' : question.id,
+        'created' : question.id,
         'questions': current_questions,
         'total_questions': len(Question.query.all())
         })
@@ -341,7 +374,7 @@ def create_app(test_config=None):
     return jsonify({
       "success" : False,
       "error": 405,
-      "message": "Method Not Allowed" + error.description['message']
+      "message": "Method Not Allowed: " + error.description['message']
     }), 405          
   
   return app

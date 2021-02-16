@@ -21,6 +21,8 @@ def setup_db(app, database_path=database_path):
     db.app = app
     db.init_app(app)
     db.create_all()
+    # I had to return db because category.update() was not working: I got an error: 'Category' object has no attribute 'update'
+    return db
 
 '''
 Question
