@@ -51,17 +51,17 @@ class TriviaTestCase(unittest.TestCase):
 
         self.assertEqual(res.status_code, 404)
         self.assertEqual(data['success'], False)
-        self.assertEqual(data['message'], "Not Found: There are no available categories") 
+        self.assertEqual(data['message'], "Not Found") 
 
     #Test 3
     #This test should fail because it's expecting a status code of 404    
-    def test_failing_404_not_found_categories_page(self):
-        res = self.client().get('/categories?page=5000', json = {'type': "History"})
-        data = json.loads(res.data)
+    # def test_failing_404_not_found_categories_page(self):
+    #     res = self.client().get('/categories?page=5000', json = {'type': "History"})
+    #     data = json.loads(res.data)
 
-        self.assertEqual(res.status_code, 200)
-        self.assertEqual(data['success'], False)
-        self.assertEqual(data['message'], "Not Found: There are no available categories")  
+    #     self.assertEqual(res.status_code, 200)
+    #     self.assertEqual(data['success'], False)
+    #     self.assertEqual(data['message'], "Not Found")  
 
     #Test 4
     def test_update_category_type(self):
@@ -73,6 +73,7 @@ class TriviaTestCase(unittest.TestCase):
         self.assertEqual(res.status_code, 200)
         self.assertEqual(data['success'], True)
         self.assertEqual(category.format()['type'], "History")
+
     #Test 5
     def test_400_for_failed_category_update(self):
         res = self.client().patch('/categories/2')
@@ -80,23 +81,28 @@ class TriviaTestCase(unittest.TestCase):
 
         self.assertEqual(res.status_code, 400)
         self.assertEqual(data['success'], False)
-        self.assertEqual(data['message'], "Bad request: The specified category could not be updated")
+        self.assertEqual(data['message'], "Bad request")
 
     #Test 6
-    # def test_delete_question(self):
-    #     no_questions = len(Question.query.all())
-    #     res = self.client().delete('questions/10')
-    #     data = json.loads(res.data)
+    def test_delete_question(self):
+        res = self.client().get('/questions')
+        no_questions = json.loads(res.data)['total_questions']
+        question_id = json.loads(res.data)['total_questions'] - 1
+        print(no_questions)
+        res = self.client().delete(f'/questions/{question_id}')
+        data = json.loads(res.data)
 
-    #     question_id = 10
-    #     question = Question.query.get(question_id)
+        
+        question = Question.query.get(question_id)
+        print(len(Question.query.all()))
 
-    #     # assertion: the number of questions has decreased by one    
-    #     self.assertEqual(len(Question.query.all()), no_questions-1)
-    #     self.assertEqual(res.status_code, 200)
-    #     self.assertEqual(data['success'], True)
-    #     self.assertEqual(data['deleted'], 2)
-    #     self.assertEqual(question, None)
+        # assertion: the number of questions has decreased by one    
+        self.assertEqual(len(Question.query.all()), no_questions-1)
+        #self.client().post('/questions', json = question.format())
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(data['success'], True)
+        self.assertEqual(data['deleted'], question_id)
+        self.assertEqual(question, None)
 
     #Test 7
     def test_404_if_delete_question_that_does_not_exist(self):
@@ -106,7 +112,7 @@ class TriviaTestCase(unittest.TestCase):
 
         self.assertEqual(res.status_code, 422)
         self.assertEqual(data['success'], False)
-        self.assertEqual(data['message'], "Unprocessable Entity: The specified question could not be deleted")
+        self.assertEqual(data['message'], "Unprocessable Entity")
 
 
     def test_create_question(self):
@@ -141,10 +147,10 @@ class TriviaTestCase(unittest.TestCase):
 
         self.assertEqual(res.status_code, 405)
         self.assertEqual(data['success'], False)
-        self.assertEqual(data['message'], "Method Not Allowed: The method is not allowed for the requested URL")
+        self.assertEqual(data['message'], "Method Not Allowed")
 
     def test_search_for_questions(self):
-        res = self.client().post('/questions', json = {"search_term":"Which"})
+        res = self.client().post('/questions/search', json = {"searchTerm":" "})
         data =json.loads(res.data)    
 
         self.assertEqual(res.status_code, 200)
@@ -153,12 +159,12 @@ class TriviaTestCase(unittest.TestCase):
 
 
     def test_404_for_search_for_questions(self):
-        res = self.client().post('/questions', json = {"search_term":"Reem"})
+        res = self.client().post('/questions/search', json = {"searchTerm":"biupsdVUDBPEb"})
         data =json.loads(res.data)    
 
         self.assertEqual(res.status_code, 404)
         self.assertEqual(data['success'], False)
-        self.assertEqual(data['message'], "Not Found: No questions with the searched criteria were found")    
+        self.assertEqual(data['message'], "Not Found")    
 
 
     

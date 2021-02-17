@@ -40,6 +40,8 @@ def create_app(test_config=None):
       formatted_collection.append(c.format())
 
     curr_collection  = formatted_collection[start:end]
+    if len(curr_collection) == 0:
+      abort(404)
     
     return curr_collection         
   '''
@@ -211,7 +213,7 @@ def create_app(test_config=None):
   @app.route('/questions/<int:question_id>', methods = ['DELETE'])
   def delete_question(question_id):
     try:
-      question = Question.query.filter(Question.id == question_id).one_or_none()
+      question = Question.query.filter_by(id = question_id).one_or_none()
       print(f"I am fine: {question}")
       if question is None:
         abort(404)
@@ -290,8 +292,8 @@ def create_app(test_config=None):
       searchTerm   = body.get('searchTerm', None) 
     
     try:
-      questions = Question.query.filter(Question.question.like('%' + searchTerm + '%')).all()
-      current_questions = paginate_collection(request,questions.order_by(Question.id))
+      questions = Question.query.order_by(Question.id).filter(Question.question.like('%{}%'.format(searchTerm))).all()
+      current_questions = paginate_collection(request,questions)
       return jsonify({
             'success': True,
             'related_questions': current_questions,
@@ -351,7 +353,7 @@ def create_app(test_config=None):
     return jsonify({
       "success" : False,
       "error": 404,
-      "message": "Not Found: " 
+      "message": "Not Found" 
     }), 404
 
 
@@ -360,7 +362,7 @@ def create_app(test_config=None):
     return jsonify({
       "success" : False,
       "error": 400,
-      "message": "Bad request: " 
+      "message": "Bad request" 
     }), 400
 
   @app.errorhandler(422)
@@ -368,7 +370,7 @@ def create_app(test_config=None):
     return jsonify({
       "success" : False,
       "error": 422,
-      "message": "Unprocessable Entity: "
+      "message": "Unprocessable Entity"
     }), 422
 
   @app.errorhandler(405)
@@ -376,7 +378,7 @@ def create_app(test_config=None):
     return jsonify({
       "success" : False,
       "error": 405,
-      "message": "Method Not Allowed: " 
+      "message": "Method Not Allowed" 
     }), 405          
   
   return app

@@ -638,7 +638,7 @@ POST /questions/
 POST /questions/
 
 -- Returns the questions based on a category
--- URI:- http://127.0.0.1:5000/questions
+-- URI:- http://127.0.0.1:5000/categories/3/questions
 -- Response
     {
   "related_questions": [
