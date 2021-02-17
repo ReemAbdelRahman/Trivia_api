@@ -80,4 +80,5 @@ class Category(db.Model):
     return {
       'id': self.id,
       'type': self.type
+      #self.id: self.type
     }

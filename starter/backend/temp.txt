@@ -50,14 +50,13 @@ def create_app(test_config=None):
 
   @app.route('/categories')
   def get_categories():
-    categories = Category.query.all()
-    if len(categories) == 0:
-      abort(404)
+    categories = Category.query.order_by(Category.id).all()
     
-    current_categories = paginate_collection(request, categories)
-    #for c in categories:
-      #current_categories.append(c.format())
+    current_categories = paginate_collection(request,categories)
     
+
+    if len(current_categories) == 0:
+      abort(404 , {'message': 'There are no available categories'})
 
     return jsonify({
       'categories': current_categories,
@@ -72,7 +71,7 @@ def create_app(test_config=None):
       category = Category.query.get(category_id)
       if category is None:
         #https://stackoverflow.com/questions/21294889/how-to-get-access-to-error-message-from-abort-command-when-using-custom-error-ha
-        abort(404)
+        abort(404 , {'message': 'There is no category with the specified id'})
 
 
       return jsonify({
@@ -82,7 +81,7 @@ def create_app(test_config=None):
 
     except Exception as e:
       print(e)
-      abort(404)
+      abort(404 , {'message': 'There is no category with the specified id'})
 
 
 
@@ -99,7 +98,7 @@ def create_app(test_config=None):
     try:
       category = Category.query.get(category_id)
       if category is None:
-        abort(404)
+        abort(404, {'message': 'There is no category with the specified id'})
 
       if 'type' in body:
         category.type = body.get('type')  
@@ -114,7 +113,7 @@ def create_app(test_config=None):
       })
     except Exception as e:
       print(e)
-      abort(400)  
+      abort(400, {'message': 'The specified category could not be updated'})  
 
 
   @app.route('/categories/<int:category_id>', methods = ['DELETE'])
@@ -122,7 +121,7 @@ def create_app(test_config=None):
     try:
       category = Category.query.get(category_id)
       if category is None:
-        abort(404)
+        abort(404, {'message': 'There is no category with the specified id'})
 
 
       Category.query.filter_by(id=category_id).delete()
@@ -140,7 +139,7 @@ def create_app(test_config=None):
 
     except Exception as e:
       print(e)
-      abort(422)
+      abort(422, {'message': 'The specified category could not be deleted'})
 
        
   
@@ -160,25 +159,22 @@ def create_app(test_config=None):
 
   @app.route('/questions')
   def get_questions():
-    questions = Question.query.all()
-    categories = Category.query.all()
-
-    if len(questions) == 0:
-      abort(404)
+    questions = Question.query.order_by(Question.id).all()
+    categories = Category.query.order_by(Category.id).all()
     
-    formatted_categories = []
+    formated_categories = []
     for c in categories:
-      formatted_categories.append(c.format())
+      formated_categories.append(c.format())
     
     current_questions = paginate_collection(request,questions)
-    print(formatted_categories)
-    print(type(formatted_categories))
-  
+    
+
+    if len(current_questions) == 0:
+      abort(404, {'message': 'There is no available questions'})
 
     return jsonify({
       'questions': current_questions,
-      'categories': formatted_categories,
-      'current_category':formatted_categories,
+      'categories': formated_categories,
       'total_questions': len(questions),
       'success': True
     })
@@ -190,7 +186,7 @@ def create_app(test_config=None):
       question = Question.query.get(question_id)
       if question is None:
         #https://stackoverflow.com/questions/21294889/how-to-get-access-to-error-message-from-abort-command-when-using-custom-error-ha
-        abort(404)
+        abort(404 , {'message': 'There is no question with the specified id'})
 
 
       return jsonify({
@@ -200,7 +196,7 @@ def create_app(test_config=None):
 
     except Exception as e:
       print(e)
-      abort(405)  
+      abort(405 , {'message': 'The method is not allowed for the requested URL'})  
 
   '''
   @TODO: 
@@ -214,7 +210,7 @@ def create_app(test_config=None):
       question = Question.query.filter(Question.id == question_id).one_or_none()
       print(f"I am fine: {question}")
       if question is None:
-        abort(404)
+        abort(404, {'message': 'There is no question with the specified id'})
 
       
       Question.query.filter_by(id=question_id).delete()
@@ -233,7 +229,7 @@ def create_app(test_config=None):
     except Exception as e:
       print(e)
       #flash(e)
-      abort(422)  
+      abort(422, {'message': 'The specified question could not be deleted'})  
 
   '''
   @TODO: 
@@ -272,7 +268,7 @@ def create_app(test_config=None):
         })
 
     except Exception as e:
-      abort(405)    
+      abort(405, {'message': 'The new question could not be posted'})    
   '''
   @TODO: 
   Create a POST endpoint to get questions based on a search term. 
@@ -286,11 +282,11 @@ def create_app(test_config=None):
   @app.route('/questions/search', methods=['POST'])
   def search_questions():
     body = request.json
-    if 'searchTerm' in body:
-      searchTerm   = body.get('searchTerm', None) 
+    if 'search_term' in body:
+      search_term   = body.get('search_term', None) 
     
     try:
-      questions = Question.query.filter(Question.question.like('%' + searchTerm + '%')).all()
+      questions = Question.query.filter(Question.question.like('%' + search_term + '%')).all()
       current_questions = paginate_collection(request,questions.order_by(Question.id))
       return jsonify({
             'success': True,
@@ -299,7 +295,7 @@ def create_app(test_config=None):
             })
     
     except Exception as e:
-      abort(404)           
+      abort(404, {'message': 'No questions with the searched criteria were found'})           
 
   '''
   @TODO: 
@@ -324,7 +320,7 @@ def create_app(test_config=None):
             })
     
     except Exception as e:
-      abort(404)   
+      abort(404, {'message': 'No questions with the specified category were found'})   
 
 
   '''
@@ -353,7 +349,7 @@ def create_app(test_config=None):
     return jsonify({
       "success" : False,
       "error": 404,
-      "message": "Not Found: " 
+      "message": "Not Found: " + error.description['message']
     }), 404
 
 
@@ -362,7 +358,7 @@ def create_app(test_config=None):
     return jsonify({
       "success" : False,
       "error": 400,
-      "message": "Bad request: " 
+      "message": "Bad request: " + error.description['message']
     }), 400
 
   @app.errorhandler(422)
@@ -370,7 +366,7 @@ def create_app(test_config=None):
     return jsonify({
       "success" : False,
       "error": 422,
-      "message": "Unprocessable Entity: "
+      "message": "Unprocessable Entity: " + error.description['message'] 
     }), 422
 
   @app.errorhandler(405)
@@ -378,7 +374,7 @@ def create_app(test_config=None):
     return jsonify({
       "success" : False,
       "error": 405,
-      "message": "Method Not Allowed: " 
+      "message": "Method Not Allowed: " + error.description['message']
     }), 405          
   
   return app
