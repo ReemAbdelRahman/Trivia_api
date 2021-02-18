@@ -56,9 +56,10 @@ def create_app(test_config=None):
     if len(categories) == 0:
       abort(404)
     
-    current_categories = paginate_collection(request, categories)
-    #for c in categories:
-      #current_categories.append(c.format())
+    #current_categories = paginate_collection(request, categories)
+    current_categories = {}
+    for c in categories:
+      current_categories[c.id] = c.type
     
 
     return jsonify({
@@ -168,9 +169,11 @@ def create_app(test_config=None):
     if len(questions) == 0:
       abort(404)
     
-    formatted_categories = []
+    formatted_categories = {}
     for c in categories:
-      formatted_categories.append(c.format())
+      formatted_categories[c.id] = c.type
+
+    #dict((key,d[key]) for d in formatted_categories for key in d) 
     
     current_questions = paginate_collection(request,questions)
     print(formatted_categories)
@@ -290,9 +293,10 @@ def create_app(test_config=None):
     body = request.json
     if 'searchTerm' in body:
       searchTerm   = body.get('searchTerm', None) 
+      print(searchTerm)
     
     try:
-      questions = Question.query.order_by(Question.id).filter(Question.question.like('%{}%'.format(searchTerm))).all()
+      questions = Question.query.order_by(Question.id).filter(Question.question.ilike('%' + searchTerm + '%')).all()
       current_questions = paginate_collection(request,questions)
       return jsonify({
             'success': True,
@@ -313,10 +317,12 @@ def create_app(test_config=None):
   '''
   @app.route('/categories/<int:category_id>/questions')
   def search_questions_cat(category_id):
-
+    print(category_id)
     try:
       questions = Question.query.order_by(Question.id).filter(Question.category == category_id).all()
+      print(questions)
       current_questions = paginate_collection(request,questions)
+      print(current_questions)
       return jsonify({
             'success': True,
             'related_questions': current_questions,
